@@ -31,12 +31,12 @@ export class PersonInfoService implements IPersonInfoService {
   /*  ----------------------------------------------------
     Find a person
   */
-  public async find( user: User, email: string | null, loginId: string | null): Promise<PersonInfo> {
+  public async find(user: User, email: string | null, loginId: string | null): Promise<PersonInfo> {
     const taskTree: TaskTree<Task> = this.createTaskTree(user);
     if (loginId) {
       taskTree.rootNode.task.request.paramsMap.set('${param1}', 'loginid');
       taskTree.rootNode.task.request.paramsMap.set('${param2}', loginId);
-    } else if(email) {
+    } else if (email) {
       taskTree.rootNode.task.request.paramsMap.set('${param1}', 'email');
       taskTree.rootNode.task.request.paramsMap.set('${param2}', email);
     }
@@ -54,125 +54,125 @@ export class PersonInfoService implements IPersonInfoService {
   */
   public async update(user: User, personAction: PersonInfo): Promise<PersonInfo> {
     const personInfo: PersonInfo = new PersonInfo();
-    
-    if(personAction.actionInfo.actionIdProofUser){
+
+    if (personAction.actionInfo.actionIdProofUser) {
       return this.mfaProofAction(user, personAction, this.ID_PROOF_MFA_STATUS);
-    } else if(personAction.actionInfo.actionRestartIdProof) {
+    } else if (personAction.actionInfo.actionRestartIdProof) {
       return this.mfaProofAction(user, personAction, this.RESTART_ID_PROOF_MFA_STATUS);
     } else {
       return personInfo;
     }
   }
-  
+
   /* -----------------------------------------------------
     Private helper methods
   */
   private createTaskTree(user: User): TaskTree<Task> {
     //create root node
     const prsnTask = new Task(
-                            this.TASK_PRSN_KEY,
-                            new TaskRequest('/persons?${param1}=${param2}',new Map([['${param1}', ''],['${param2}', '']])),
-                            new MraDataResolverService<MirPrsn>(),
-                            false, //UNIQUE
-                          );
+      this.TASK_PRSN_KEY,
+      new TaskRequest('/persons?${param1}=${param2}', new Map([['${param1}', ''], ['${param2}', '']])),
+      new MraDataResolverService<MirPrsn>(),
+      false, //UNIQUE
+    );
     //override default postProcessing method on this task
     prsnTask.postProcess = (taskResponse: TaskResponse) => {
-                              if (taskResponse && taskResponse.hasData()) {
-                                if (Array.isArray(taskResponse.result)) {
-                                  for(let prsn of taskResponse.result) {
-                                    if(prsn){
-                                      prsn.vldtnStusDesc = MirPrsn.getVldtnStusDesc(prsn.vldtnStusId);
+      if (taskResponse && taskResponse.hasData()) {
+        if (Array.isArray(taskResponse.result)) {
+          for (let prsn of taskResponse.result) {
+            if (prsn) {
+              prsn.vldtnStusDesc = MirPrsn.getVldtnStusDesc(prsn.vldtnStusId);
 
-                                      if(!prsnTask.allowMany) {//access the first element
-                                        taskResponse.result = prsn;
-                                        break;
-                                      }
-                                    }
-                                  };
-                                }
-                              }
+              if (!prsnTask.allowMany) {//access the first element
+                taskResponse.result = prsn;
+                break;
+              }
+            }
+          };
+        }
+      }
 
-                              prsnTask.response = taskResponse;
-                              return Promise.resolve(prsnTask);
-                            };
+      prsnTask.response = taskResponse;
+      return Promise.resolve(prsnTask);
+    };
     const rootNode: TaskNode<Task> = new TaskNode(prsnTask);
 
     //create failover node
     const prsnFailoverTask = new Task(
-                                    this.TASK_PRSN_FAILOVER_KEY,
-                                    //replace $param1 with the value found for $param2 inside the parent-node request
-                                    new TaskRequest('/api/v1/users/get_ar_info/${param1}', new Map([['${param1}', '${param2}']])),
-                                    new CobDataResolverService<Submitter>(user),
-                                    false, //UNIQUE
-                                  );
+      this.TASK_PRSN_FAILOVER_KEY,
+      //replace $param1 with the value found for $param2 inside the parent-node request
+      new TaskRequest('/api/v1/users/get_ar_info/${param1}', new Map([['${param1}', '${param2}']])),
+      new CobDataResolverService<Submitter>(user),
+      false, //UNIQUE
+    );
     //Transform the data received to a MIR_PRSN object
     prsnFailoverTask.postProcess = (taskResponse: TaskResponse) => {
-                                      if (taskResponse && taskResponse.hasData()) {
-                                        if(taskResponse.result){
-                                          const prsn: MirPrsn = new MirPrsn();
-                                          prsn.prsn1stName = taskResponse.result.firstName;
-                                          prsn.prsnMdlInitlName = taskResponse.result.middleName;
-                                          prsn.prsnLastName = taskResponse.result.lastName;
-                                          prsn.emailAdr = taskResponse.result.email;
-                                          prsn.vldtnStusId = taskResponse.result.status;
-                                          prsn.vldtnStusDesc = MirPrsn.getVldtnStusDesc(taskResponse.result.status);
-                                          taskResponse.result = prsn;
-                                        }
-                                        prsnFailoverTask.response = taskResponse;
-                                      }
-                                      return Promise.resolve(prsnFailoverTask);
-                                    };
-    const prsnFailoverNode = new TaskNode(prsnFailoverTask, 
-                                          true, //Is Failover Node
-                                          'Key not found');  //failover criteria
+      if (taskResponse && taskResponse.hasData()) {
+        if (taskResponse.result) {
+          const prsn: MirPrsn = new MirPrsn();
+          prsn.prsn1stName = taskResponse.result.firstName;
+          prsn.prsnMdlInitlName = taskResponse.result.middleName;
+          prsn.prsnLastName = taskResponse.result.lastName;
+          prsn.emailAdr = taskResponse.result.email;
+          prsn.vldtnStusId = taskResponse.result.status;
+          prsn.vldtnStusDesc = MirPrsn.getVldtnStusDesc(taskResponse.result.status);
+          taskResponse.result = prsn;
+        }
+        prsnFailoverTask.response = taskResponse;
+      }
+      return Promise.resolve(prsnFailoverTask);
+    };
+    const prsnFailoverNode = new TaskNode(prsnFailoverTask,
+      true, //Is Failover Node
+      'Key not found');  //failover criteria
 
     //create all dependent child nodes
     const qstnTaskNode: TaskNode<Task> = new TaskNode(
-                                              new Task(
-                                                  this.TASK_QSTN_KEY,
-                                                  new TaskRequest('/persons/${param1}/questions',new Map([['${param1}', 'prsnId']])),
-                                                  new MraDataResolverService<MirPrsnQstn>(),
-                                              ));
+      new Task(
+        this.TASK_QSTN_KEY,
+        new TaskRequest('/persons/${param1}/questions', new Map([['${param1}', 'prsnId']])),
+        new MraDataResolverService<MirPrsnQstn>(),
+      ));
 
     // we ONLY set the user for CobDataResolverService when calling existing COB REST-API backend and not for MRA-DL
     const idProofTaskNode: TaskNode<Task> = new TaskNode(
-                                                new Task(
-                                                  this.TASK_MFA_KEY,
-                                                  new TaskRequest('/api/v1/users/mfa-id-proofing',
-                                                    new Map([['${param1}', 'prsnId']]),
-                                                    'REST' , 
-                                                    'POST', 
-                                                    {
-                                                      'systemIndicator': 'E',//EDI
-                                                      'action': 'I', //Inquiry
-                                                      'personId': '${param1}',
-                                                    },
-                                                  ),
-                                                  new CobDataResolverService<IdProof>(user),
-                                                ),
-                                              );
+      new Task(
+        this.TASK_MFA_KEY,
+        new TaskRequest('/api/v1/users/mfa-id-proofing',
+          new Map([['${param1}', 'prsnId']]),
+          'REST',
+          'POST',
+          {
+            'systemIndicator': 'E',//EDI
+            'action': 'I', //Inquiry
+            'personId': '${param1}',
+          },
+        ),
+        new CobDataResolverService<IdProof>(user),
+      ),
+    );
 
     const sbmtrTask = new Task(
-                          this.TASK_SBMTR_KEY,
-                          new TaskRequest('/api/v1/submitters/${param1}', new Map([['${param1}', 'emailAdr']])),
-                          new CobDataResolverService<Submitter>(user),
-                        );
+      this.TASK_SBMTR_KEY,
+      new TaskRequest('/api/v1/submitters/${param1}', new Map([['${param1}', 'emailAdr']])),
+      new CobDataResolverService<Submitter>(user),
+    );
     //override default postProcessing method on this task
     sbmtrTask.postProcess = (taskResponse: TaskResponse) => {
-                                        if (taskResponse && taskResponse.hasData()) {
-                                          if (Array.isArray(taskResponse.result)) {
-                                            taskResponse.result.forEach((sbmtr: Submitter) => {
-                                              sbmtr.appName = Submitter.getAppName(sbmtr.systemIndicator);
-                                              sbmtr.roleName = Submitter.getRoleName(sbmtr.role);
-                                              sbmtr.acctStatusName = Submitter.getAcctStatusName(sbmtr.status, sbmtr.systemIndicator);
-                                            });
-                                          }
-                                          sbmtrTask.response = taskResponse;
-                                        }
-                                        return Promise.resolve(sbmtrTask);
-                                      };
+      if (taskResponse && taskResponse.hasData()) {
+        if (Array.isArray(taskResponse.result)) {
+          taskResponse.result.forEach((sbmtr: Submitter) => {
+            sbmtr.appName = Submitter.getAppName(sbmtr.systemIndicator);
+            sbmtr.roleName = Submitter.getRoleName(sbmtr.role);
+            sbmtr.acctStatusName = Submitter.getAcctStatusName(sbmtr.status, sbmtr.systemIndicator);
+          });
+        }
+        sbmtrTask.response = taskResponse;
+      }
+      return Promise.resolve(sbmtrTask);
+    };
     const sbmtrTaskNode: TaskNode<Task> = new TaskNode(sbmtrTask);
-    
+
     /* Create node relationships:
                           [ PersonTask ] 
                         /             \
@@ -194,7 +194,7 @@ export class PersonInfoService implements IPersonInfoService {
 
     return new TaskTree(rootNode);
   }
-  
+
   private formatTaskResponse(responseMap: Map<string, TaskResponse>): Promise<PersonInfo> {
     const personInfo: PersonInfo = new PersonInfo();
 
@@ -219,10 +219,10 @@ export class PersonInfoService implements IPersonInfoService {
         /*
           handle UI specific logic
         */
-        if(personInfo.person){
-          personInfo.displayInfo = this.gatherDisplayInfo(personInfo.person, 
-                                                          personInfo.sbmtrList, 
-                                                          personInfo.idProof);
+        if (personInfo.person) {
+          personInfo.displayInfo = this.gatherDisplayInfo(personInfo.person,
+            personInfo.sbmtrList,
+            personInfo.idProof);
         }
 
         return Promise.resolve(personInfo);
@@ -246,42 +246,42 @@ export class PersonInfoService implements IPersonInfoService {
       optionSendToken: false,
     };
 
-    if(person){
-      if( (person.mrpRoleId && person.mrpRoleId !== this.ROLE_ID_AR)
-        || ( person.ghpRoleId && person.ghpRoleId !== this.ROLE_ID_AR)
-      ){
+    if (person) {
+      if ((person.mrpRoleId && person.mrpRoleId !== this.ROLE_ID_AR)
+        || (person.ghpRoleId && person.ghpRoleId !== this.ROLE_ID_AR)
+      ) {
         displayInfo.showIdProofDetails = true;
       }
-      
-      switch(person.vldtnStusId){
-        case MirPrsn.VLD_STUS_ACTIVE: 
-          displayInfo.optionResetPwd = person.loginId? true: false; //is not null or empty
+
+      switch (person.vldtnStusId) {
+        case MirPrsn.VLD_STUS_ACTIVE:
+          displayInfo.optionResetPwd = person.loginId ? true : false; //is not null or empty
           break;
-        case MirPrsn.VLD_STUS_INACTIVE: 
-          displayInfo.optionReactivate = true; 
+        case MirPrsn.VLD_STUS_INACTIVE:
+          displayInfo.optionReactivate = true;
           break;
-        case MirPrsn.VLD_STUS_LOCKED: 
-          displayInfo.optionResetPwd = person.loginId? true: false;
+        case MirPrsn.VLD_STUS_LOCKED:
+          displayInfo.optionResetPwd = person.loginId ? true : false;
           displayInfo.optionUnlockUserAcct = true;
           break;
         default:
           break;
       }
       //console.log(idProof);
-      if(idProof) {
-        if(idProof.mfaStatus){
-          if(idProof.mfaStatus === 'F' || idProof.mfaStatus === 'P'){
+      if (idProof) {
+        if (idProof.mfaStatus) {
+          if (idProof.mfaStatus === 'F' || idProof.mfaStatus === 'P') {
             displayInfo.optionRestartIdProof = true;
-            if(idProof.mfaStatus === 'F') {
+            if (idProof.mfaStatus === 'F') {
               displayInfo.optionIdProofUser = true;
             }
           }
         }
       }
-      if(sbmtrList){
+      if (sbmtrList) {
         //find any submitter-acct with a role of AM and verify person is in pending status with a null login-id
-        displayInfo.optionSendToken = ((person.loginId? false: true) && person.vldtnStusId === MirPrsn.VLD_STUS_PENDING)
-                                      &&  ((sbmtrList as Submitter[]).filter(sbmtr => sbmtr.role === 'AM')?.length>0);
+        displayInfo.optionSendToken = ((person.loginId ? false : true) && person.vldtnStusId === MirPrsn.VLD_STUS_PENDING)
+          && ((sbmtrList as Submitter[]).filter(sbmtr => sbmtr.role === 'AM')?.length > 0);
       }
     }
 
@@ -291,28 +291,28 @@ export class PersonInfoService implements IPersonInfoService {
   /* -------------------------------------------
      Action methods
   */
-  private async mfaProofAction(user: User, personInfo: PersonInfo, mfaStatus: string = 'E'){
+  private async mfaProofAction(user: User, personInfo: PersonInfo, mfaStatus: string = 'E') {
     const cobDataResolver = new CobDataResolverService<IdProof>(user);
-    try{
+    try {
       //create and update request payload
       const idProof: IdProof = new IdProof();
       idProof.systemIndicator = 'E';//EDI
       idProof.action = 'U';//Update
       idProof.mfaStatus = mfaStatus; //this is the change
-      idProof.personId = personInfo.person?.prsnId? personInfo.person?.prsnId: 0;
+      idProof.personId = personInfo.person?.prsnId ? personInfo.person?.prsnId : 0;
 
       //call endpoint
       const updateResponse: IdProof = await cobDataResolver.postData(
-          '/api/v1/users/mfa-id-proofing',
-          idProof
+        '/api/v1/users/mfa-id-proofing',
+        idProof
       );
 
       //handle response
-      if(updateResponse){
+      if (updateResponse) {
         personInfo.idProof = idProof;
-        if(idProof.mfaStatus === this.ID_PROOF_MFA_STATUS){
+        if (idProof.mfaStatus === this.ID_PROOF_MFA_STATUS) {
           personInfo.displayInfo.optionIdProofUser = false;
-        } else if(idProof.mfaStatus === this.RESTART_ID_PROOF_MFA_STATUS){
+        } else if (idProof.mfaStatus === this.RESTART_ID_PROOF_MFA_STATUS) {
           personInfo.displayInfo.optionRestartIdProof = false;
         }
         return Promise.resolve(personInfo);
@@ -321,10 +321,40 @@ export class PersonInfoService implements IPersonInfoService {
         personInfo.actionInfo.errors.push(`mfaProofAction: Unknown error trying to set mfaStatus: ${mfaStatus}`);
         return Promise.reject(personInfo);
       }
-    } catch(error){
+    } catch (error) {
       personInfo.actionInfo.status = 500;
       personInfo.actionInfo.errors.push(error);
       return Promise.reject(personInfo);
+    }
+  }
+
+  public async unlockUser(unlockData: any): Promise<any> {
+    const cobDataResolver = new CobDataResolverService<any>(unlockData);
+    let resData: any = {
+      status: "",
+      message: "",
+      errors: ""
+    }
+    try {
+
+      //call endpoint
+      const updateResponse = await cobDataResolver.postData(
+        '/api/v1/users/mfa-id-proofing',
+        unlockData
+      );
+
+      //handle response
+      if (updateResponse) {
+
+        return Promise.resolve(updateResponse);
+      } else {
+        resData.status = 500;
+        resData.errors = ` Unknown error trying to unlock user`;
+        return Promise.reject(resData);
+      }
+    } catch (error) {
+      resData.status = 500;
+      resData.errors = error;
     }
   }
 }

@@ -13,14 +13,15 @@ export class PersonInfoRouter implements CustomRouter {
   public path = '/person';
   public router = express.Router();
 
-  constructor(  @inject(Symbols.IPersonInfoController) private controller: PersonInfoController) {
-      this.initializeRoutes();
+  constructor(@inject(Symbols.IPersonInfoController) private controller: PersonInfoController) {
+    this.initializeRoutes();
   }
 
   @loggable()
   private initializeRoutes(): void {
     this.router.get('/', [jwtValidator], this.controller.findPersonByLoginOrEmail.bind(this.controller));
     this.router.post('/', [jwtValidator], this.controller.updatePerson.bind(this.controller));
+    this.router.post('/unlock-user', [jwtValidator], this.controller.unlockUser.bind(this.controller));
   }
 
 }
