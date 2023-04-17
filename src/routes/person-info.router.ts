@@ -21,7 +21,7 @@ export class PersonInfoRouter implements CustomRouter {
   private initializeRoutes(): void {
     this.router.get('/', [jwtValidator], this.controller.findPersonByLoginOrEmail.bind(this.controller));
     this.router.post('/', [jwtValidator], this.controller.updatePerson.bind(this.controller));
-    this.router.post('/unlock-user', [jwtValidator], this.controller.unlockUser.bind(this.controller));
+    this.router.put('/', [jwtValidator], this.controller.unlockUser.bind(this.controller));
   }
 
 }

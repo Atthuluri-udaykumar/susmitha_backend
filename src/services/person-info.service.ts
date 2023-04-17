@@ -328,33 +328,31 @@ export class PersonInfoService implements IPersonInfoService {
     }
   }
 
-  public async unlockUser(unlockData: any): Promise<any> {
-    const cobDataResolver = new CobDataResolverService<any>(unlockData);
-    let resData: any = {
-      status: "",
-      message: "",
-      errors: ""
-    }
+  public async unlockUser(user: User) {
+    const cobDataResolver = new CobDataResolverService<IdProof>(user);
+    const personInfo: PersonInfo = new PersonInfo();
     try {
-
+      //create and update request payload
+      let userData: any = user;
+      userData.vldtnStusId = 2
       //call endpoint
-      const updateResponse = await cobDataResolver.postData(
-        '/api/v1/users/mfa-id-proofing',
-        unlockData
+      const updateResponse: IdProof = await cobDataResolver.putData(
+        'MRA-DL/persons',
+        userData
       );
 
       //handle response
       if (updateResponse) {
-
-        return Promise.resolve(updateResponse);
+        return Promise.resolve(personInfo);
       } else {
-        resData.status = 500;
-        resData.errors = ` Unknown error trying to unlock user`;
-        return Promise.reject(resData);
+        personInfo.actionInfo.status = 500;
+        personInfo.actionInfo.errors.push(`Unknown error trying to set vldtnStatus`);
+        return Promise.reject(personInfo);
       }
     } catch (error) {
-      resData.status = 500;
-      resData.errors = error;
+      personInfo.actionInfo.status = 500;
+      personInfo.actionInfo.errors.push(error);
+      return Promise.reject(personInfo);
     }
   }
 }

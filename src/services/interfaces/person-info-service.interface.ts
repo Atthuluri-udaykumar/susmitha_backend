@@ -4,5 +4,5 @@ import { User } from "../../types/custom";
 export interface IPersonInfoService {
     find(user: User, emailId: string | null, loginId: string | null): Promise<PersonInfo>;
     update(user: User, personAction: PersonInfo): Promise<PersonInfo>;
-    unlockUser(unlockData: any): Promise<any>;
+    unlockUser(unlockData: User): Promise<any>;
 }
