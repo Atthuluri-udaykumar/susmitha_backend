@@ -27,12 +27,9 @@ export const jwtRefreshValidator = (req: Request, res: Response, next: NextFunct
 export const jwtTypeValidator = (req: Request, res: Response, next: NextFunction, tokenType: string) => {
 
     try {
-        const payload = authenticateJwtToken(req, tokenType);
+        const payload: TokenPayload = authenticateJwtToken(req, tokenType);
         
-        const user: User = {
-            id: payload.userId,
-            name: payload.userName,
-        };
+        const user: User = payload.user;
         req.user = user;
         
         next();

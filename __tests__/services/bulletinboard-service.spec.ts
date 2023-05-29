@@ -19,6 +19,7 @@ describe('Test BulletinBoard Service', () => {
     let container: Container;
     let service: BulletinBoardService;
     const testRecord = [ {application: 'test', message:'test message' }, {application:'test', message:''}];
+    const testUser ={ memberOf: undefined, badPasswordTime: 0, badPwdCount: 0,email:"", firstName: "tester",lastName:"",lockoutTime: 0,loginTimeStamp: null, middleName: "",personId: 0,pwdLastSet: 0, userName:"tester" };
 
     beforeEach(() => {
         container = new Container();
@@ -46,7 +47,7 @@ describe('Test BulletinBoard Service', () => {
     });
 
     test('Update message', async () => {
-        const user: User = {id: 0, name: ''};
+        const user: User = testUser;
         await service.updateMessages(user, testRecord);
         
         expect(service).toBeDefined();

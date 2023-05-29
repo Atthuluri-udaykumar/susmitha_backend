@@ -17,6 +17,7 @@ describe('Test PersonInfo Controller', () => {
     let service: PersonInfoService;
     const axiosGetSpy = jest.spyOn(http, 'get');
     const axiosPostSpy = jest.spyOn(http, 'post');
+    const testUser ={ memberOf: undefined, badPasswordTime: 0, badPwdCount: 0,email:"", firstName: "tester",lastName:"",lockoutTime: 0,loginTimeStamp: null, middleName: "",personId: 0,pwdLastSet: 0, userName:"tester" };
 
     beforeAll(() => {
         jest.resetModules();
@@ -223,6 +224,7 @@ describe('Test PersonInfo Controller', () => {
 
     afterAll(() => {
         axiosGetSpy.mockRestore();
+        axiosPostSpy.mockRestore();
     });
 
     beforeEach(() => {
@@ -304,7 +306,7 @@ describe('Test PersonInfo Controller', () => {
     });
     test('Test Id-Proof action', async () => {
         //fetch data
-        let prsnInfo = await service.find({id: 1234, name: 'TESTER'},null, "abc123");
+        let prsnInfo = await service.find(testUser ,null, "abc123");
 
         //set action flag
         prsnInfo.actionInfo.actionIdProofUser = true;

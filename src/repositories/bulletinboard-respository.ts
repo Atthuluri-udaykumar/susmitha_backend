@@ -20,7 +20,7 @@ export class BulletinBoardRepository implements IBulletinBoardRepository {
             for(const element of messages) {
                 console.log(element);
                 const msg: MirEdiCntntTbl = TranslatorService.translateToMirEdiCntntTbl(element);
-                msg.ediRepLoginId = user.name;
+                msg.ediRepLoginId = user.userName;
                 await http.post(this.BULLETINBOARD_URI, msg);
             }
             return Promise.resolve();

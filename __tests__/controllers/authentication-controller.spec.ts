@@ -17,6 +17,7 @@ describe('Test authentication Controller', () => {
  
     let serviceMock: AuthenticationServiceMock;
     let controller: AuthenticationController ;
+    const testUser ={ memberOf: undefined, badPasswordTime: 0, badPwdCount: 0,email:"", firstName: "tester",lastName:"",lockoutTime: 0,loginTimeStamp: null, middleName: "",personId: 0,pwdLastSet: 0, userName:"tester" };
 
     beforeEach(() => {
         serviceMock = new AuthenticationServiceMock();
@@ -51,7 +52,7 @@ describe('Test authentication Controller', () => {
     });
 
     test('test refresh', () => {
-        const tokens = createTokens( 10, 'mockuser');
+        const tokens = createTokens( testUser);
         const request = createRequest( {headers: {authorization: "Bearer "+ tokens.refreshToken.toString() }, params: { sectId: 1 } });
         const response = createResponse(); 
 

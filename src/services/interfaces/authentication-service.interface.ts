@@ -3,5 +3,5 @@ import { User } from "../../types/custom";
 
 
 export interface IAuthenticationService {
-    authenticateUser(username: any, password: any): Promise<User>;
+    authenticateUser(username: string, password: string): Promise<User>;
 }

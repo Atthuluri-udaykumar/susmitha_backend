@@ -13,6 +13,7 @@ import { PersonInfoRouter } from './routes/person-info.router';
 import { contextPath, serverPort, version } from './utils/app.config';
 import container from './utils/inversify.config';
 import { logger } from './utils/winston.config';
+import { AccountInfoRouter } from './routes/account-info.router';
 
 export class AppServer {
     public static readonly PORT: number = serverPort;
@@ -24,7 +25,8 @@ export class AppServer {
     private authenticationRouter!: AuthenticationRouter;
     private personInfoRouter!: PersonInfoRouter;
     private authorisedRepRouter!: AuthorisedRepRouter;
-
+    private accountInfoRouter!: AccountInfoRouter;
+    
     constructor() {
         this.startup();
     }
@@ -94,6 +96,7 @@ export class AppServer {
     	this.app.use(contextPath + this.authenticationRouter.path, this.authenticationRouter.router);
         this.app.use(contextPath + this.personInfoRouter.path, this.personInfoRouter.router);
         this.app.use(contextPath + this.authorisedRepRouter.path, this.authorisedRepRouter.router);
+        this.app.use(contextPath + this.accountInfoRouter.path, this.accountInfoRouter.router);
 
         // defaul to  404 not found
         this.app.get("*", (req, res) => res.sendStatus(404));   
@@ -113,5 +116,6 @@ export class AppServer {
 		this.authenticationRouter = container.resolve<AuthenticationRouter>(AuthenticationRouter);
         this.personInfoRouter = container.resolve<PersonInfoRouter>(PersonInfoRouter);
         this.authorisedRepRouter = container.resolve<AuthorisedRepRouter>(AuthorisedRepRouter);
+        this.accountInfoRouter =  container.resolve<AccountInfoRouter>(AccountInfoRouter);
     }
 }

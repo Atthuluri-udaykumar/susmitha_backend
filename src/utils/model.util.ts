@@ -73,3 +73,10 @@ export function nullable(validate: boolean = true) {
         if (!validate) { target['no-validate-properties'].push(key); } // if validate false push property name to the array
     };
 }
+
+/*
+  Validates if an object is empty={}
+*/
+export function isEmptyObject(obj: any) : boolean{
+    return (Object.keys(obj).length===0);
+}

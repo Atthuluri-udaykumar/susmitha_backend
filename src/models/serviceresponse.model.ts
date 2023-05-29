@@ -14,10 +14,10 @@ export class ServiceResponse {
 
         // List<ServiceError>
         @JsonProperty('errors', Any)
-        public errors: any = undefined;
+        @nullable() public errors: any = undefined;
 
-        @JsonProperty('result', Any, true, nullable)
-        public result: any = undefined;
+        @JsonProperty('result', Any)
+        @nullable() public result: any = undefined;
 
         @JsonProperty('timestamp', Any)
         public timestamp: any = undefined;

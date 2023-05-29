@@ -13,7 +13,7 @@ import { PersonInfo } from '../models/person-info.model';
 @injectable()
 export class PersonInfoController extends AbstractController {
 
-    constructor(@inject(Symbols.IPersonInfoService) private service: IPersonInfoService) {
+     constructor(@inject(Symbols.IPersonInfoService)  private service: IPersonInfoService) {
         super();
     }
 
@@ -29,15 +29,15 @@ export class PersonInfoController extends AbstractController {
 
         try {
             if (loginId || email) {
-                const personinfo = loginId ?
-                    await this.service.find(req.user!, null, loginId as string) :
-                    await this.service.find(req.user!, (email as string).toLowerCase(), null);
+                const personinfo =  loginId? 
+                                    await this.service.find(req.user!, null, loginId as string): 
+                                    await this.service.find(req.user!, (email as string).toLowerCase(), null);
                 setSuccessResponse(personinfo, res);
             } else {
                 res.status(400).json({ message: "Your request was invalid. You must pass in an loginid or email in the querystring." });
             }
         } catch (error) {
-            logger.error(error);
+            logger.error( error);
             setErrorResponse(res, error);
         }
     }
@@ -54,31 +54,13 @@ export class PersonInfoController extends AbstractController {
             const personInfo = req.body as PersonInfo;
 
             if (personInfo && personInfo.actionInfo) {
-                const updateResult = await this.service.update(req.user!, personInfo);
+                const updateResult =  await this.service.update(req.user!, personInfo); 
                 setSuccessResponse(updateResult, res);
             } else {
                 res.status(400).json({ message: "Your request was invalid. You must pass in valid Person info with selected action in request-body." });
             }
         } catch (error) {
-            logger.error(error);
-            setErrorResponse(res, error);
-        }
-    }
-
-
-    public async unlockUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-        try {
-            this.validateReceivedData(req);
-            const unlockData = req.body;
-
-            if (unlockData && unlockData) {
-                const updateResult = await this.service.unlockUser(unlockData);
-                setSuccessResponse(updateResult, res);
-            } else {
-                res.status(400).json({ message: "Your request was invalid. You must pass in valid Person info with selected action in request-body." });
-            }
-        } catch (error) {
-            logger.error(error);
+            logger.error( error);
             setErrorResponse(res, error);
         }
     }

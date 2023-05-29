@@ -22,8 +22,15 @@ describe('Test AuthorisedRep Service', () => {
         expect(service).toBeDefined();
     });
 
-    test('Service should return valid response', async () => {
-        let result = await service.findRrePerson("abc123");
+    test('Service should return valid response for rreid', async () => {
+        let result = await service.findARbyRptrId("7899");
+       
+        expect(service).toBeDefined();
+        expect(result).toBeDefined();
+    });
+
+    test('Service should return valid response for email', async () => {
+        let result = await service.findARbyEmail("123@abc.com");
        
         expect(service).toBeDefined();
         expect(result).toBeDefined();

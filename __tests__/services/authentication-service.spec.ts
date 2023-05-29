@@ -9,6 +9,8 @@ import { AuthenticationService } from '../../src/services/authentication-service
 import { IAuthenticationService } from '../../src/services/interfaces/authentication-service.interface';
 import { User } from '../../src/types/custom';
 import { Symbols } from '../../src/utils/types';
+import { IAuthenticationRepository } from '../../src/repositories/interfaces/authentication-repository.interface';
+import { AuthenticationRepository } from '../../src/repositories/authentication-repository';
 
 
 
@@ -21,6 +23,7 @@ describe('Test Authentication Service', () => {
     beforeEach(() => {
         container = new Container();
         container.bind<IAuthenticationService>(Symbols.IAuthenticationService).to(AuthenticationService);
+        container.bind<IAuthenticationRepository>(Symbols.IAuthenticationRepository).to(AuthenticationRepository);
 
         service = container.resolve(AuthenticationService);
 

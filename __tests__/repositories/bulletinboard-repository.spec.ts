@@ -19,6 +19,7 @@ describe('Test BulletinBoard Repository', () => {
 
     const httpGetSpy = jest.spyOn(http, 'get');
     const httpPostSpy = jest.spyOn(http, 'post');
+    const testUser ={ memberOf: undefined, badPasswordTime: 0, badPwdCount: 0,email:"", firstName: "tester",lastName:"",lockoutTime: 0,loginTimeStamp: null, middleName: "",personId: 0,pwdLastSet: 0, userName:"tester" };
     
     beforeAll(() => {
         jest.resetModules();
@@ -108,7 +109,7 @@ describe('Test BulletinBoard Repository', () => {
         console.log('test updateMessage');
 
         const messages: EdiMessage[] = [{application: 'test', message: 'this is only a test'},{application: 'test2', message: 'this is only a test'}];
-        const user: User = {id: 123, name: "awesomeUser"};
+        const user: User = testUser;
 
         console.log('calling update');
         await repository.updateMessages(user, messages);

@@ -7,6 +7,8 @@ import { createTokens } from '../../src/utils/jwt.util';
 
 describe('Test JWT authentication validator', () => {
 
+    const testUser ={ memberOf: undefined, badPasswordTime: 0, badPwdCount: 0,email:"", firstName: "tester",lastName:"",lockoutTime: 0,loginTimeStamp: null, middleName: "",personId: 0,pwdLastSet: 0, userName:"tester" };
+
 
     beforeEach(() => {
         // serviceMock = new CobAcntActvtyServiceMock();
@@ -50,7 +52,7 @@ describe('Test JWT authentication validator', () => {
     });
 
     test('Test jwtValidator with refresh token', () => {
-        const tokens = createTokens( 10, 'tester');
+        const tokens = createTokens(testUser);
         const request = createRequest( {headers: {authorization: "Bearer "+ tokens.refreshToken.toString() }, params: { sectId: 1 } });
         const response = createResponse(); 
         jwtValidator(request, response, () => {});
@@ -61,14 +63,14 @@ describe('Test JWT authentication validator', () => {
 
 
     test('Test jwtValidator with GOOD token', () => {
-        const tokens = createTokens( 10, 'tester');
+        const tokens = createTokens(testUser);
         const request = createRequest( {headers: {authorization: "Bearer "+ tokens.token.toString() }, params: { sectId: 1 } });
         const response = createResponse(); 
         jwtValidator(request, response, () => {});
 
         expect(response.statusCode).toEqual(200);
         expect(request.user).toBeDefined();
-        expect(request.user!.name).toBe('tester');
+        expect(request.user!.firstName).toBe('tester');
     });
 
 
@@ -100,7 +102,7 @@ describe('Test JWT authentication validator', () => {
     });
 
     test('Test jwtRefreshValidator with access token', () => {
-        const tokens = createTokens( 10, 'tester');
+        const tokens = createTokens(testUser);
         const request = createRequest( {headers: {authorization: "Bearer "+ tokens.token.toString() }, params: { sectId: 1 } });
         const response = createResponse(); 
         jwtRefreshValidator(request, response, () => {});
@@ -111,14 +113,14 @@ describe('Test JWT authentication validator', () => {
 
 
     test('Test jwtRefreshValidator with GOOD token', () => {
-        const tokens = createTokens( 10, 'tester');
+        const tokens = createTokens(testUser);
         const request = createRequest( {headers: {authorization: "Bearer "+ tokens.refreshToken.toString() }, params: { sectId: 1 } });
         const response = createResponse(); 
         jwtRefreshValidator(request, response, () => {});
 
         expect(response.statusCode).toEqual(200);
         expect(request.user).toBeDefined();
-        expect(request.user!.name).toBe('tester');
+        expect(request.user!.firstName).toBe('tester');
     });
 
 

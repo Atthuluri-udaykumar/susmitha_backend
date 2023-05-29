@@ -27,10 +27,10 @@ export class AuthorisedRepController extends AbstractController {
 
         try {
             if (rreId) {
-                const personinfo = await this.service.findReporter(rreId as string);
+                const personinfo = await this.service.findARbyRptrId(rreId as string);
                 setSuccessResponse(personinfo, res);
             } else if (email) {
-                const personinfo = await this.service.findRrePerson((email as string).toLowerCase());
+                const personinfo = await this.service.findARbyEmail((email as string).toLowerCase());
                 setSuccessResponse(personinfo, res);
             } else {
                 res.status(400).json({ message: "Your request was invalid. You must pass in an rreid or email in the querystring." });

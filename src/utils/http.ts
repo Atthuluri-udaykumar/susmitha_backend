@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { activeConfig } from "./axios.config";
+import { ServiceResponse } from "../models/serviceresponse.model";
 
 enum StatusCode {
     Unauthorized = 401,
@@ -38,17 +39,17 @@ class Http {
       return this.http.get<T, R>(url, config);
     }
   
-    post<T = any, R = AxiosResponse<T>>(
+    post<D = any, T = D, R = AxiosResponse<T>>(
       url: string,
-      data?: T,
+      data?: D,
       config?: AxiosRequestConfig
     ): Promise<R> {
       return this.http.post<T, R>(url, data, config);
     }
-  
-    put<T = any, R = AxiosResponse<T>>(
+     
+    put<D = any, T = D, R = AxiosResponse<T>>(
       url: string,
-      data?: T,
+      data?: D,
       config?: AxiosRequestConfig
     ): Promise<R> {
       return this.http.put<T, R>(url, data, config);
@@ -61,7 +62,25 @@ class Http {
     // Handle global app errors
     // We can handle generic app errors depending on the status code
     private handleError(error: any) {
-      const { status } = error;
+      // if error has response, and response is valid ServiceResponse, reject the Promise with service response.
+      if( error.response?.data ) {
+        const data = error.response.data;
+        // does data have status, errors, result and timestamp - then it's ServiceResponse()
+        if( data.status && data.errors && data.result && data.timestamp) {
+          let sr = new ServiceResponse();
+          sr = Object.assign(sr , data);
+          return Promise.reject(sr);
+        } else {
+          // not a standard service response, might be from java REST end-point
+          let sr = new ServiceResponse();
+          sr.status = data.status || error.code;
+          sr.errors = data;
+          sr.result = error.code || data.status;
+          return Promise.reject(sr);
+        }
+        
+      }
+      const { status } = error.code;
   
       switch (status) {
         case StatusCode.InternalServerError: {

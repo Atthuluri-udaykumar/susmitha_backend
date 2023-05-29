@@ -28,9 +28,17 @@ import { AuthorisedRepController } from '../controllers/authorised-rep.controlle
 import { IAuthorisedRepService } from '../services/interfaces/authorised-rep-service.interface';
 import { AuthorisedRepService } from '../services/authorised-rep.service';
 import { AuthorisedRepMockService } from '../services/mock/authorised-rep-mock.service';
+import { IAuthenticationRepository } from '../repositories/interfaces/authentication-repository.interface';
+import { AuthenticationRepository } from '../repositories/authentication-repository';
+import { AccountInfoController } from '../controllers/account-info.controller';
+import { IAccountInfoController } from '../controllers/interfaces/account-info-controller.interface';
+import { AccountInfoService } from '../services/account-info.service';
+import { AccountInfoMockService } from '../services/mock/account-info-mock.service';
+import { IAccountInfoService } from '../services/interfaces/account-info-service.interface';
 
 const container = new Container(); // Initialize the IOC bindings
 
+container.bind<IAuthenticationRepository>(Symbols.IAuthenticationRepository).to(AuthenticationRepository);
 container.bind<IAuthenticationService>(Symbols.IAuthenticationService).to(AuthenticationService);
 container.bind<IAuthenticationController>(Symbols.IAuthenticationController).to(AuthenticationController);
 
@@ -41,14 +49,19 @@ container.bind<IPersonInfoController>(Symbols.IPersonInfoController).to(PersonIn
 
 container.bind<IAuthorisedRepController>(Symbols.IAuthorisedRepController).to(AuthorisedRepController);
 
+container.bind<IAccountInfoController>(Symbols.IAccountInfoController).to(AccountInfoController);
+
 if(profile == 'mock') {
     container.bind<IBulletinBoardRepository>(Symbols.IBulletinBoardRepository).to(BulletinBoardRepositoryMock);
     container.bind<IPersonInfoService>(Symbols.IPersonInfoService).to(PersonInfoMockService);
     container.bind<IAuthorisedRepService>(Symbols.IAuthorisedRepService).to(AuthorisedRepMockService);
+    container.bind<IAccountInfoService>(Symbols.IAccountInfoService).to(AccountInfoMockService);
+    
 } else {
     container.bind<IBulletinBoardRepository>(Symbols.IBulletinBoardRepository).to(BulletinBoardRepository);
     container.bind<IPersonInfoService>(Symbols.IPersonInfoService).to(PersonInfoService);
     container.bind<IAuthorisedRepService>(Symbols.IAuthorisedRepService).to(AuthorisedRepService);
+    container.bind<IAccountInfoService>(Symbols.IAccountInfoService).to(AccountInfoService);
 }
 
 

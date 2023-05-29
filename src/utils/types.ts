@@ -10,12 +10,17 @@ const Symbols = {
 
     IAuthenticationController: Symbol.for('IAuthenticationController'),
     IAuthenticationService: Symbol.for('IAuthenticationService'),
+    IAuthenticationRepository: Symbol.for('IAuthenticationRepository'),
+
 
     IPersonInfoController: Symbol.for('IPersonInfoController'),
     IPersonInfoService: Symbol.for('IPersonInfoService'),
 
     IAuthorisedRepController: Symbol.for('IAuthorisedRepController'),
     IAuthorisedRepService: Symbol.for('IAuthorisedRepService'),
+    
+    IAccountInfoController: Symbol.for('IAccountInfoController'),
+    IAccountInfoService: Symbol.for('IAccountInfoService'),
 };
 
 export { Symbols };

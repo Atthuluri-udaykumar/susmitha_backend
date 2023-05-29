@@ -19,11 +19,11 @@ import { logger } from './winston.config';
 
     }
 
-    export  function setErrorResponse(res: Response, error: any, status: number = 500  ): void {
+    export  function setErrorResponse(res: Response, error: any, status: number = 500, value: any = null ): void {
         const errors: any[] = [];
         errors.push(error);
 
-        const response: EdiResponse = createEdiResponse( status, null, errors);
+        const response: EdiResponse = createEdiResponse( status, value, errors);
         logger.error(errors);
         res
             .json(response)

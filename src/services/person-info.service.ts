@@ -13,6 +13,10 @@ import { IdProof } from '../models/id-proof.model';
 import { Submitter } from '../models/submitter.model';
 import { User } from '../types/custom';
 import { CobDataResolverService } from './cob-data-resolver-service';
+import { MirRrePrsn } from '../models/mir-rre-prsn.model';
+import { http } from '../utils/http';
+import { ServiceResponse } from '../models/serviceresponse.model';
+
 
 @injectable()
 export class PersonInfoService implements IPersonInfoService {
@@ -59,9 +63,12 @@ export class PersonInfoService implements IPersonInfoService {
       return this.mfaProofAction(user, personAction, this.ID_PROOF_MFA_STATUS);
     } else if (personAction.actionInfo.actionRestartIdProof) {
       return this.mfaProofAction(user, personAction, this.RESTART_ID_PROOF_MFA_STATUS);
-    } else {
-      return personInfo;
+    } else if (personAction.actionInfo.actionReactivate) {
+      return this.reactivateUserAction(user, personAction);
+    } else if (personAction.actionInfo.actionUnlockUserAcct) {
+      return this.unlockUserAction(user, personAction);
     }
+    return personInfo;
   }
 
   /* -----------------------------------------------------
@@ -173,6 +180,13 @@ export class PersonInfoService implements IPersonInfoService {
     };
     const sbmtrTaskNode: TaskNode<Task> = new TaskNode(sbmtrTask);
 
+    const rreTaskNode: TaskNode<Task> = new TaskNode(
+      new Task(
+        this.TASK_RRE_KEY,
+        new TaskRequest('/persons/${param1}/rre', new Map([['${param1}', 'prsnId']])),
+        new MraDataResolverService<MirRrePrsn>(),
+      ),
+    );
     /* Create node relationships:
                           [ PersonTask ] 
                         /             \
@@ -182,15 +196,16 @@ export class PersonInfoService implements IPersonInfoService {
                           \        /       \
                             \    [pass]    [fail]=>Stop processing
                             \   /                     
-                    ---------------------         
-                    |        |         |        
-              [QstnTask] [MfaTask] [SbmtrTask]  
+                    -----------------------------
+                    |        |         |        |
+              [QstnTask] [MfaTask] [SbmtrTask] [rreTask] 
     */
     //All nodes with there sub-nodes need to be defined before adding to root-node
     rootNode.addChild(prsnFailoverNode);
     rootNode.addChild(qstnTaskNode);
     rootNode.addChild(idProofTaskNode);
     rootNode.addChild(sbmtrTaskNode);
+    rootNode.addChild(rreTaskNode);
 
     return new TaskTree(rootNode);
   }
@@ -308,19 +323,20 @@ export class PersonInfoService implements IPersonInfoService {
       );
 
       //handle response
-      if (updateResponse) {
-        personInfo.idProof = idProof;
-        if (idProof.mfaStatus === this.ID_PROOF_MFA_STATUS) {
-          personInfo.displayInfo.optionIdProofUser = false;
-        } else if (idProof.mfaStatus === this.RESTART_ID_PROOF_MFA_STATUS) {
-          personInfo.displayInfo.optionRestartIdProof = false;
-        }
-        return Promise.resolve(personInfo);
-      } else {
-        personInfo.actionInfo.status = 500;
+      if (!updateResponse) {
+        personInfo.actionInfo.status = 200;
         personInfo.actionInfo.errors.push(`mfaProofAction: Unknown error trying to set mfaStatus: ${mfaStatus}`);
         return Promise.reject(personInfo);
       }
+
+      personInfo.idProof = idProof;
+      if (idProof.mfaStatus === this.ID_PROOF_MFA_STATUS) {
+        personInfo.displayInfo.optionIdProofUser = false;
+      } else if (idProof.mfaStatus === this.RESTART_ID_PROOF_MFA_STATUS) {
+        personInfo.displayInfo.optionRestartIdProof = false;
+      }
+      return Promise.resolve(personInfo);
+
     } catch (error) {
       personInfo.actionInfo.status = 500;
       personInfo.actionInfo.errors.push(error);
@@ -328,25 +344,114 @@ export class PersonInfoService implements IPersonInfoService {
     }
   }
 
-  public async unlockUser(user: User) {
-    const cobDataResolver = new CobDataResolverService<IdProof>(user);
-    const personInfo: PersonInfo = new PersonInfo();
+  private async reactivateUserAction(user: User, personInfo: PersonInfo) {
+    const mraDataResolver = new MraDataResolverService<MirPrsn>();
     try {
-      //create and update request payload
-      let userData: any = user;
-      userData.vldtnStusId = 2
+      if (personInfo && personInfo.person) {
+        //1.Pre-update validation
+        let rreARfound: boolean = false;
+
+        //filter out any RREs which are AR
+        if (personInfo.rreList) {
+          rreARfound = personInfo.rreList.filter(rre => rre.roleId == this.ROLE_ID_AR).length > 0
+        }
+        if (rreARfound &&
+          (
+            (!personInfo.person.mrpRoleId && !personInfo.person.wcsRoleId)
+            ||
+            (personInfo.person.mrpRoleId == this.ROLE_ID_AR && personInfo.person.wcsRoleId == this.ROLE_ID_AR)
+          )
+        ) {
+          personInfo.actionInfo.status = 200;
+          personInfo.actionInfo.errors.push('Cannot reactivate AuthRep');
+          return Promise.reject(personInfo);
+        }
+
+        //2.create and update request payload
+        personInfo.person.vldtnStusId = MirPrsn.VLD_STUS_ACTIVE;
+        personInfo.person.faildLoginCnt = 0;
+        personInfo.person.faildLoginTs = null;
+        personInfo.person.lastLoginTs = null;
+        personInfo.person.recUpdtUserName = user.userName;
+
+      }
+
       //call endpoint
-      const updateResponse: IdProof = await cobDataResolver.putData(
-        'MRA-DL/persons',
-        userData
+      const updateResponse: any = await mraDataResolver.putData(
+        '/persons',
+        personInfo.person
       );
 
       //handle response
-      if (updateResponse) {
+      if (updateResponse && updateResponse.rowsAffected > 0) {
+        personInfo.displayInfo.optionReactivate = false;
         return Promise.resolve(personInfo);
+      }
+
+      personInfo.actionInfo.errors.push('reactivateUserAction: Unknown error trying to activate user');
+      return Promise.reject(personInfo);
+
+    } catch (error) {
+      personInfo.actionInfo.status = 500;
+      personInfo.actionInfo.errors.push(error);
+      return Promise.reject(personInfo);
+    }
+  }
+
+  //EM-217
+  private async unlockUserAction(user: User, personInfo: PersonInfo): Promise<any> {
+    const mraDataResolver = new MraDataResolverService<MirPrsn>();
+    let adldsUpdStatus: boolean = true;
+    let mraUpdStatus: boolean = false;
+
+    try {
+      if (personInfo?.person) {
+        //1.create and update request payload
+        personInfo.person.vldtnStusId = MirPrsn.VLD_STUS_ACTIVE;
+        personInfo.person.faildLoginCnt = 0;
+        personInfo.person.faildLoginTs = null;
+        personInfo.person.recUpdtUserName = user.userName;
+      }
+      //call endpoint
+      const updateResponse: any = await mraDataResolver.putData(
+        '/persons',
+        personInfo.person
+      );
+    
+      //handle response
+      if (updateResponse && updateResponse.rowsAffected > 0) {
+        mraUpdStatus = true;
+        personInfo.displayInfo.optionReactivate = false;
+        if( personInfo.person) {
+          personInfo.person.vldtnStusDesc = MirPrsn.getVldtnStusDesc(MirPrsn.VLD_STUS_ACTIVE);
+        }
       } else {
-        personInfo.actionInfo.status = 500;
-        personInfo.actionInfo.errors.push(`Unknown error trying to set vldtnStatus`);
+        personInfo.actionInfo.errors.push(`Error updating user record - adldsStatus:${adldsUpdStatus} mraStatus:${mraUpdStatus}`);
+        return Promise.reject(personInfo);
+      }
+
+      
+      //Update ADLDS
+      /*
+        Once unlockUser support gets added to COB_AUTH, this call will get added
+        If update to ADLDS is successfull ONLY then the next update will get executed
+          adldsUpdStatus = true;
+      */
+      if (adldsUpdStatus) {
+        const unlockUserRes: any = await http.put<any, ServiceResponse>(
+          '/cob-auth/login',
+          {
+            "username": user.userName,
+            "unlockUserAccount": 1
+          }
+        );
+
+        //handle response
+        if (unlockUserRes?.status === 200 && unlockUserRes?.data?.result?.lockoutTime == '0') {
+          personInfo.displayInfo.optionUnlockUserAcct = true;
+          return Promise.resolve(personInfo);
+        }
+        personInfo.actionInfo.errors.push(`Error updating adlds -  adldsStatus:${adldsUpdStatus} mraStatus:${mraUpdStatus}`);
         return Promise.reject(personInfo);
       }
     } catch (error) {
@@ -356,3 +461,4 @@ export class PersonInfoService implements IPersonInfoService {
     }
   }
 }
+

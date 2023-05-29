@@ -11,6 +11,7 @@ import { loggable } from '../utils/logger.util';
 import { Symbols } from '../utils/types';
 import { AbstractController } from './abstract-controller';
 import { IAuthenticationController } from './interfaces/authentication-controller.interface';
+import { ServiceResponse } from '../models/serviceresponse.model';
 
 /**
  * AuthenticationController Controller
@@ -32,6 +33,9 @@ export class AuthenticationController extends AbstractController implements IAut
             
         } catch (error) {
             logger.error(error);
+            if( error instanceof ServiceResponse ) {
+                return setErrorResponse(res, error.errors, error.status, error.result);
+            }
             return setErrorResponse(res, error);
         }
     }
@@ -41,11 +45,14 @@ export class AuthenticationController extends AbstractController implements IAut
         // But we are going to decode the payload to validate ourselves
         try {
             const payload = authenticateJwtToken(req, 'refresh');
-            logger.debug(payload.userId);
-            return setSuccessResponse( createTokens( payload.userId, payload.userName), res);
+            logger.debug(payload.user.personId);
+            return setSuccessResponse( createTokens( payload.user), res);
         } catch (err) {
             logger.error( err);
-            return setErrorResponse(res, err);
+            if( err instanceof ServiceResponse ) {
+                return setErrorResponse(res, err.errors, err.status, err.result);
+            }
+             return setErrorResponse(res, err);
         }
     }
 

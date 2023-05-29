@@ -9,6 +9,7 @@ describe('Test PersonInfo Service', () => {
 
     let container: Container;
     let service: PersonInfoMockService;
+    const testUser ={ memberOf: undefined, badPasswordTime: 0, badPwdCount: 0,email:"", firstName: "tester",lastName:"",lockoutTime: 0,loginTimeStamp: null, middleName: "",personId: 0,pwdLastSet: 0, userName:"tester" };
 
     beforeEach(() => {
         container = new Container();
@@ -23,7 +24,7 @@ describe('Test PersonInfo Service', () => {
     });
 
     test('Service:find should return valid response', async () => {
-        let result = await service.find({id: 1234, name: 'MOCKER'},null, "abc123");
+        let result = await service.find(testUser,null, "abc123");
        
         expect(service).toBeDefined();
         expect(result).toBeDefined();
@@ -31,8 +32,8 @@ describe('Test PersonInfo Service', () => {
     
     
     test('Service:update should return valid response', async () => {
-        let prsnInfo = await service.find({id: 1234, name: 'MOCKER'},null, "abc123");
-        let result = await service.update({id: 1234, name: 'MOCKER'}, prsnInfo);
+        let prsnInfo = await service.find(testUser,null, "abc123");
+        let result = await service.update(testUser, prsnInfo);
        
         expect(service).toBeDefined();
         expect(result).toBeDefined();

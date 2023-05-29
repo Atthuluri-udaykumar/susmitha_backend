@@ -1,14 +1,26 @@
+import { User } from "../types/custom";
 
 export class TokenPayload  {
     tokenType: string = '';
-    userId: number = 0;
-    userName: string = '';
+    user: User = {
+      personId: 0,
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      userName: '',
+      email: '',
+      loginTimeStamp: null,
+      badPwdCount: 0,
+      badPasswordTime: 0,
+      lockoutTime: 0,
+      pwdLastSet: 0,
+      memberOf: []
+    };
   }
 
-export function createTokenPayload( type: string, id: number, name: string): TokenPayload {
+export function createTokenPayload( type: string, user: User): TokenPayload {
     const payload = new TokenPayload();
     payload.tokenType = type;
-    payload.userName = name;
-    payload.userId = id;
+    payload.user = user;
     return payload;
   }
